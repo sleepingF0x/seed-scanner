@@ -67,3 +67,13 @@ def test_empty_results(tmp_path):
     data = json.loads(report_path.read_text())
     assert data["total_files"] == 0
     assert data["seeds_found"] == 0
+
+
+def test_generate_both_reports(tmp_path, sample_results):
+    reporter = Reporter(output_dir=tmp_path)
+    json_path, text_path = reporter.generate_both(sample_results)
+
+    assert json_path.exists()
+    assert text_path.exists()
+    assert json_path.suffix == ".json"
+    assert text_path.suffix == ".txt"

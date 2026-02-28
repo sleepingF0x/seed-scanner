@@ -49,3 +49,34 @@ def test_extract_text_no_detection():
 
     result = engine.extract_text(Path("fake.png"))
     assert result == ""
+
+
+def test_extract_text_new_paddleocr_response():
+    """Supports PaddleOCR response with rec_texts entries."""
+    engine = OCREngine(use_gpu=False)
+    mock_ocr = Mock()
+    mock_ocr.ocr = Mock(return_value=[
+        {"rec_texts": ["abandon ability", "able about"], "rec_scores": [0.95, 0.92]}
+    ])
+    engine._ocr = mock_ocr
+
+    result = engine.extract_text(Path("fake.png"))
+    assert result == "abandon ability able about"
+
+
+def test_extract_text_with_boxes_legacy_response():
+    """extract_text_with_boxes keeps compatibility for legacy line response."""
+    engine = OCREngine(use_gpu=False)
+    mock_ocr = Mock()
+    mock_ocr.ocr = Mock(return_value=[
+        [
+            [[(10, 10), (100, 10), (100, 30), (10, 30)], ("abandon ability", 0.95)],
+            [[(10, 40), (100, 40), (100, 60), (10, 60)], ("able about", 0.92)],
+        ]
+    ])
+    engine._ocr = mock_ocr
+
+    result = engine.extract_text_with_boxes(Path("fake.png"))
+    assert len(result) == 2
+    assert result[0]["text"] == "abandon ability"
+    assert result[0]["confidence"] == 0.95

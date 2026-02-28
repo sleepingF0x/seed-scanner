@@ -1,7 +1,6 @@
 """OCR engine module for seed scanner."""
 
 from pathlib import Path
-from typing import Optional
 
 
 class OCREngine:
@@ -37,15 +36,33 @@ class OCREngine:
         if not result or len(result) == 0:
             return ""
 
-        # 新版 PaddleOCR 返回结构: [{'rec_texts': [...], 'rec_scores': [...]}]
+        # Keep compatibility with both PaddleOCR response shapes:
+        # 1) New shape: [{"rec_texts": [...], "rec_scores": [...]}]
+        # 2) Legacy shape: [[[box, (text, score)], ...]]
         texts = []
         for page in result:
-            if 'rec_texts' in page:
+            if not page:
+                continue
+
+            if isinstance(page, dict) and 'rec_texts' in page:
                 texts.extend(page['rec_texts'])
+                continue
+
+            if isinstance(page, list):
+                for line in page:
+                    if (
+                        isinstance(line, list)
+                        and len(line) >= 2
+                        and isinstance(line[1], tuple)
+                        and len(line[1]) >= 1
+                    ):
+                        texts.append(str(line[1][0]))
 
         return ' '.join(texts)
 
     def extract_text_with_boxes(self, image_path: Path) -> list:
+        # Retained for integrations that need OCR coordinates/confidence metadata
+        # instead of plain text output.
         """
         Extract text with bounding box information.
 
@@ -59,7 +76,7 @@ class OCREngine:
 
         boxes = []
         for line in result[0]:
-            if line:
+            if isinstance(line, list) and len(line) >= 2 and line:
                 boxes.append({
                     'box': line[0],
                     'text': line[1][0],

@@ -76,6 +76,8 @@ class Reporter:
         return report_path
 
     def generate_both(self, results: List[Dict[str, Any]]) -> tuple[Path, Path]:
+        # Compatibility wrapper kept for callers expecting one method to return
+        # both report paths in a single call.
         """Generate both JSON and text reports"""
         json_path = self.generate_json_report(results)
         text_path = self.generate_text_report(results)

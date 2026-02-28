@@ -52,6 +52,8 @@ class ImageScanner:
         return sorted(images)
 
     def scan_single_file(self, file_path: Path) -> Path:
+        # Retained as a public utility for callers that provide one explicit file
+        # instead of a directory scan workflow.
         """Validate and return a single image file path"""
         file_path = Path(file_path)
 

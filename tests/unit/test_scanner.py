@@ -54,3 +54,21 @@ def test_supported_formats():
     scanner = ImageScanner()
     expected = {'.png', '.jpg', '.jpeg', '.bmp', '.webp'}
     assert set(scanner.supported_formats) == expected
+
+
+def test_scan_single_file_valid(tmp_path):
+    scanner = ImageScanner()
+    file_path = tmp_path / "one.png"
+    file_path.write_bytes(b"fake")
+
+    result = scanner.scan_single_file(file_path)
+    assert result == file_path
+
+
+def test_scan_single_file_invalid_suffix(tmp_path):
+    scanner = ImageScanner()
+    file_path = tmp_path / "one.txt"
+    file_path.write_text("hello")
+
+    with pytest.raises(ValueError):
+        scanner.scan_single_file(file_path)
