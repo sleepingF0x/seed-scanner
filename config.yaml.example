@@ -1,0 +1,29 @@
+# config.yaml.example
+scanner:
+  supported_formats: [".png", ".jpg", ".jpeg", ".bmp", ".webp"]
+  recursive: true
+
+ocr:
+  use_gpu: false
+  lang: "en"
+
+detection:
+  seed_lengths: [12, 24]
+  fuzzy_threshold: 1
+
+mail:
+  enabled: true
+  smtp_server: "smtp.qq.com"
+  smtp_port: 587
+  username: "your_email@qq.com"
+  password: "your_auth_code"
+  to_address: "recipient@example.com"
+  subject: "助记词扫描结果 / Seed Scanner Report"
+
+output:
+  directory: "./output"
+  generate_json: true
+  generate_txt: true
+
+database:
+  path: "./data/seed_scanner.db"
