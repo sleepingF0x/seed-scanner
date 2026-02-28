@@ -4,10 +4,12 @@ Seed Scanner - Detect cryptocurrency seed phrases in images
 """
 
 import argparse
+import logging
 import sys
 from pathlib import Path
 from typing import Iterator
 from datetime import datetime
+from time import perf_counter
 
 from src.config import Config
 from src.scanner import ImageScanner
@@ -17,6 +19,9 @@ from src.ocr_engine import OCREngine
 from src.seed_detector import SeedDetector
 from src.reporter import Reporter
 from src.mailer import Mailer
+from src.logger import setup_logging
+
+logger = logging.getLogger("seed_scanner")
 
 
 def parse_args(args=None):
@@ -49,6 +54,12 @@ def parse_args(args=None):
         action='store_true',
         help='Disable email notification'
     )
+    parser.add_argument(
+        '--log-level', '-l',
+        choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'],
+        default='INFO',
+        help='Logging level (default: INFO)'
+    )
     return parser.parse_args(args)
 
 
@@ -74,14 +85,19 @@ class ScannerPipeline:
         )
 
         images = scanner.scan_directory(target)
+        image_list = list(images)
+        total = len(image_list)
+        logger.info("Found %d images to process in %s", total, target)
 
-        for img_path in images:
+        for idx, img_path in enumerate(image_list, 1):
+            logger.debug("Processing [%d/%d]: %s", idx, total, img_path)
             result = self.process_image(img_path)
             if result:
                 yield result
 
     def process_image(self, img_path: Path) -> dict:
         """Process single image"""
+        logger.debug("Processing image: %s", img_path)
         file_hash = self.hasher.calculate_file_hash(img_path)
         phash = self.hasher.calculate_phash(img_path)
 
@@ -97,24 +113,24 @@ class ScannerPipeline:
 
         # Check exact duplicate
         if not self.config.force and self.db.exists(file_hash=file_hash):
-            print(f"[SKIP] {img_path} (exact duplicate)")
+            logger.debug("Skip %s (exact duplicate)", img_path.name)
             return None
 
         # Check similar image
         if not self.config.force:
             similar = self.db.find_by_phash_similarity(phash, threshold=5)
             if similar:
-                print(f"[SKIP] {img_path} (similar to {similar[0]['file_path']})")
+                logger.debug("Skip %s (similar to %s)", img_path.name, similar[0]['file_path'])
                 return None
 
-        print(f"[OCR] {img_path}")
+        logger.info("OCR processing: %s", img_path)
 
         # OCR
         try:
             ocr_text = self.ocr.extract_text(img_path)
             result['ocr_text'] = ocr_text
         except Exception as e:
-            print(f"[ERROR] OCR failed for {img_path}: {e}")
+            logger.error("OCR failed for %s: %s", img_path, e)
             result['ocr_text'] = f"ERROR: {e}"
 
         # Detect seed phrases
@@ -123,7 +139,7 @@ class ScannerPipeline:
             if seeds:
                 result['has_seed'] = True
                 result['seed_phrase'] = ' '.join(seeds[0])  # Take first match
-                print(f"[ALERT] Seed phrase detected in {img_path}")
+                logger.warning("SEED PHRASE DETECTED in %s", img_path)
 
         # Save to database
         self.db.insert_file(
@@ -143,6 +159,9 @@ def main():
     """Main entry point"""
     args = parse_args()
 
+    # Setup logging
+    setup_logging(args.log_level)
+
     # Load configuration
     if args.config and args.config.exists():
         config = Config.from_file(args.config)
@@ -156,14 +175,22 @@ def main():
     }
     config.merge_args({k: v for k, v in cli_args.items() if v is not None})
 
+    logger.info("=" * 60)
+    logger.info("Seed Scanner starting")
+    logger.info("Target: %s", args.target)
+    logger.info("Log level: %s", args.log_level)
+    logger.info("=" * 60)
+
+    start_time = perf_counter()
+
     # Initialize pipeline
     pipeline = ScannerPipeline(config)
 
     # Scan target
-    print(f"Starting scan of: {args.target}")
-    print("=" * 60)
-
     results = list(pipeline.process_directory(args.target))
+
+    elapsed = perf_counter() - start_time
+    logger.info("Scan completed in %.2f seconds", elapsed)
 
     # Generate reports
     output_dir = Path(config.output['directory'])
@@ -172,11 +199,11 @@ def main():
     json_path, txt_path = None, None
     if config.output['generate_json']:
         json_path = reporter.generate_json_report(results)
-        print(f"\nJSON report: {json_path}")
+        logger.info("JSON report: %s", json_path)
 
     if config.output['generate_txt']:
         txt_path = reporter.generate_text_report(results)
-        print(f"Text report: {txt_path}")
+        logger.info("Text report: %s", txt_path)
 
     # Send email
     if config.mail['enabled'] and not args.no_mail:
@@ -198,14 +225,15 @@ See attached report for details.
         if attachment:
             success = mailer.send_report(subject, body, attachment)
             if success:
-                print(f"Email sent to {config.mail['to_address']}")
+                logger.info("Email sent to %s", config.mail['to_address'])
 
     # Print summary
     seeds_found = [r for r in results if r['has_seed']]
-    print("\n" + "=" * 60)
-    print("Scan Complete")
-    print(f"Total files processed: {len(results)}")
-    print(f"Seed phrases found: {len(seeds_found)}")
+    logger.info("=" * 60)
+    logger.info("Scan Complete")
+    logger.info("Total files processed: %d", len(results))
+    logger.info("Seed phrases found: %d", len(seeds_found))
+    logger.info("Total time: %.2f seconds", elapsed)
 
     return 0
 
