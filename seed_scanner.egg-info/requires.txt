@@ -1,0 +1,9 @@
+paddlepaddle
+paddleocr
+pillow
+imagehash
+pyyaml
+
+[dev]
+pytest
+pytest-cov
