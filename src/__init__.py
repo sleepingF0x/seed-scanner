@@ -1,0 +1,1 @@
+"""Seed scanner package."""

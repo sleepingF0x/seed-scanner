@@ -1,0 +1,22 @@
+[project]
+name = "seed-scanner"
+version = "0.1.0"
+description = "Scan images for cryptocurrency seed phrases"
+requires-python = ">=3.10"
+dependencies = [
+    "paddlepaddle",
+    "paddleocr",
+    "pillow",
+    "imagehash",
+    "pyyaml",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-cov",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
