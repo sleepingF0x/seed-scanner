@@ -280,6 +280,6 @@ docker run --rm \
 | 文件 | 用途 |
 |------|------|
 | `build-and-push.sh` | 本地构建并推送到 Docker Hub |
-| `Dockerfile.slim` | 精简版 Dockerfile |
-| `docker-compose.server.yml` | 服务器端使用 |
-| `deploy.sh` | 服务器一键部署脚本 |
+| `Dockerfile` | Dockerfile |
+| `docker-compose.yml` | Docker Compose 部署配置 |
+| `.env.example` | 服务器环境变量模板 |

@@ -94,19 +94,6 @@ crontab -e
 # 添加: 0 */6 * * * cd /opt/seed-scanner && docker-compose up
 ```
 
-### 方式二：本地直接运行
-
-```bash
-# 安装依赖
-uv sync
-
-# 复制配置
-cp config.yaml.example config.yaml
-
-# 扫描目录
-uv run python -m src.main /path/to/images --config config.yaml
-```
-
 ## 配置说明
 
 ### config.yaml
@@ -160,84 +147,6 @@ TZ=Asia/Shanghai
 - 数据库文件 `data/seed_scanner.db` 缓存了 OCR 结果
 - 建议扫描完成后清理输出文件
 
----
-
-## 部署
-
-### 方式一：本地开发（macOS）
-
-```bash
-# 1. 克隆仓库
-git clone <repo-url>
-cd seed-scanner
-
-# 2. 安装依赖
-uv sync
-
-# 3. 配置
-cp config.yaml.example config.yaml
-# 编辑 config.yaml，禁用邮件或配置 SMTP
-
-# 4. 运行
-uv run python -m src.main /path/to/images
-```
-
-### 方式二：Ubuntu 服务器（Docker + GitHub）
-
-**1. 服务器首次部署**
-
-```bash
-# SSH 登录服务器
-ssh root@your-server-ip
-
-# 克隆项目（私有仓库需配置 SSH Key）
-git clone git@github.com:yourname/seed-scanner.git /opt/seed-scanner
-cd /opt/seed-scanner
-
-# 配置环境变量
-cp .env.example .env
-vim .env
-# 修改 SCAN_PATH=/mnt/xspt  # SMB挂载目录
-
-# 配置 SMB 挂载（如未挂载）
-mkdir -p /mnt/xspt
-mount -t cifs //NAS-IP/share /mnt/xspt -o username=xxx,password=xxx
-
-# 构建并运行
-docker-compose up --build
-```
-
-**2. 后续更新代码**
-
-```bash
-cd /opt/seed-scanner
-git pull
-docker-compose up --build
-```
-
-**3. 常用命令**
-
-```bash
-# 立即扫描
-docker-compose up
-
-# 强制重新扫描（忽略数据库缓存）
-docker-compose run --rm seed-scanner /scan --force
-
-# 定时自动扫描（crontab）
-crontab -e
-# 添加: 0 */6 * * * cd /opt/seed-scanner && docker-compose up
-```
-
-### 配置说明
-
-复制 `.env.example` 为 `.env`，修改以下配置：
-
-| 变量 | 说明 | 示例 |
-|------|------|------|
-| `SCAN_PATH` | SMB 挂载的扫描目录 | `/mnt/xspt` |
-| `PROJECT_PATH` | 项目存放路径 | `/opt/seed-scanner` |
-
 更多部署方式见 `docs/` 目录：
 - `DEPLOY_UBUNTU_GITHUB.md` - GitHub 同步部署详解
 - `DEPLOYMENT.md` - 完整部署指南
@@ -253,7 +162,7 @@ seed-scanner/
 ├── output/           # 扫描结果输出
 ├── docs/             # 部署文档
 ├── docker-compose.yml       # Docker 编排
-├── Dockerfile.slim          # 精简镜像
+├── Dockerfile               # Docker 镜像定义
 ├── .env.example             # 环境变量模板
 ├── config.yaml.example      # 配置文件模板
 └── README.md

@@ -1,0 +1,22 @@
+# Python cache/artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Packaging artifacts
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+.venv/
+venv/
+
+# Local runtime data
+data/seed_scanner.db
+output/
+
+# Local config/secrets
+.env
+config.yaml
