@@ -2,7 +2,13 @@
   "permissions": {
     "allow": [
       "Bash(git init:*)",
-      "Bash(git:*)"
+      "Bash(git:*)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(python:*)",
+      "Bash(python3:*)",
+      "Bash(uv venv:*)",
+      "Bash(uv pip:*)",
+      "Bash(uv run:*)"
     ]
   }
 }
