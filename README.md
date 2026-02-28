@@ -147,10 +147,7 @@ TZ=Asia/Shanghai
 - 数据库文件 `data/seed_scanner.db` 缓存了 OCR 结果
 - 建议扫描完成后清理输出文件
 
-更多部署方式见 `docs/` 目录：
-- `DEPLOY_UBUNTU_GITHUB.md` - GitHub 同步部署详解
-- `DEPLOYMENT.md` - 完整部署指南
-- `DOCKERHUB.md` - Docker Hub 部署方案
+部署说明以本 README 为准。
 
 ## 项目结构
 
@@ -160,7 +157,7 @@ seed-scanner/
 ├── tests/            # 测试文件
 ├── data/             # BIP39 词库 & 数据库
 ├── output/           # 扫描结果输出
-├── docs/             # 部署文档
+├── docs/             # 设计/计划文档
 ├── docker-compose.yml       # Docker 编排
 ├── Dockerfile               # Docker 镜像定义
 ├── .env.example             # 环境变量模板
