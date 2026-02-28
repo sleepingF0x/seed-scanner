@@ -1,0 +1,70 @@
+version: '3.8'
+
+# Seed Scanner - Ubuntu 服务器部署配置
+# 使用 Docker Hub 预构建镜像
+
+services:
+  seed-scanner:
+    # 使用 Docker Hub 镜像（无需本地构建）
+    image: your-dockerhub-username/seed-scanner:latest
+    container_name: seed-scanner
+
+    # 如果需要本地构建，取消下面两行注释，注释掉 image 行
+    # build:
+    #   context: .
+
+    volumes:
+      # SMB 挂载的扫描目录（只读）
+      - /mnt/xspt:/scan:ro
+
+      # 输出目录（主机路径可修改）
+      - ./output:/app/output
+
+      # 数据库持久化
+      - ./data:/app/data
+
+      # 配置文件
+      - ./config.yaml:/app/config.yaml:ro
+
+    environment:
+      # 禁用模型检查，加速启动
+      - PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK=True
+
+      # 时区设置
+      - TZ=Asia/Shanghai
+
+      # Python 配置
+      - PYTHONUNBUFFERED=1
+
+    # 默认命令：扫描 SMB 目录
+    command: ["/scan", "--config", "/app/config.yaml"]
+
+    # 资源限制（根据服务器调整）
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+        reservations:
+          memory: 2G
+
+    # 日志配置
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    # 重启策略（可选：扫描完成后退出，不自动重启）
+    # 如需定时扫描，使用 cron 或 systemd timer 调用 docker-compose up
+    restart: "no"
+
+  # 可选：Web 界面查看结果（如果需要）
+  # web:
+  #   image: nginx:alpine
+  #   container_name: seed-scanner-web
+  #   volumes:
+  #     - ./output:/usr/share/nginx/html:ro
+  #   ports:
+  #     - "8080:80"
+  #   restart: unless-stopped

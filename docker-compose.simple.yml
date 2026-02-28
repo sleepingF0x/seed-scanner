@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  seed-scanner:
+    build:
+      context: .
+      dockerfile: Dockerfile.slim
+    image: ${IMAGE_NAME:-seed-scanner:latest}
+    container_name: seed-scanner
+    volumes:
+      # 扫描目录（SMB 挂载点）
+      - ${SCAN_PATH:-/mnt/xspt}:/scan:ro
+      # 输出目录
+      - ${PROJECT_PATH:-.}/output:/app/output
+      # 数据库目录
+      - ${PROJECT_PATH:-.}/data:/app/data
+      # 配置文件
+      - ${PROJECT_PATH:-.}/config.yaml:/app/config.yaml:ro
+    environment:
+      - PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK=True
+      - TZ=${TZ:-Asia/Shanghai}
+    # 命令：扫描 + 生成报告
+    command: >
+      sh -c "
+        if [ ! -d /scan ]; then
+          echo '错误: 扫描目录 /scan 不存在';
+          echo '请检查 ${SCAN_PATH} 是否正确挂载';
+          exit 1;
+        fi;
+        echo '开始扫描: ${SCAN_PATH}';
+        uv run python -m src.main /scan --config /app/config.yaml
+      "
+    # 资源限制（可选，根据服务器调整）
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 6G
+    #     reservations:
+    #       memory: 2G

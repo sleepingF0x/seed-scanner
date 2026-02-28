@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  seed-scanner:
+    build:
+      context: .
+      dockerfile: Dockerfile.slim
+    image: seed-scanner:latest
+    container_name: seed-scanner
+    volumes:
+      # 扫描目录（SMB 挂载点）
+      - ${SCAN_PATH:-/mnt/xspt}:/scan:ro
+      # 输出目录
+      - ${PROJECT_PATH:-.}/output:/app/output
+      # 数据库目录
+      - ${PROJECT_PATH:-.}/data:/app/data
+      # 配置文件
+      - ${PROJECT_PATH:-.}/config.yaml:/app/config.yaml:ro
+    environment:
+      - PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK=True
+      - TZ=${TZ:-Asia/Shanghai}
+    command: ["/scan", "--config", "/app/config.yaml"]

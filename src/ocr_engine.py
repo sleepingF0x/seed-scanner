@@ -18,10 +18,7 @@ class OCREngine:
         if self._ocr is None:
             from paddleocr import PaddleOCR
             self._ocr = PaddleOCR(
-                use_angle_cls=True,
-                lang=self.lang,
-                use_gpu=self.use_gpu,
-                show_log=False
+                lang=self.lang if self.lang != 'en' else None,
             )
         return self._ocr
 
@@ -35,21 +32,18 @@ class OCREngine:
         Returns:
             Extracted text (joined lines)
         """
-        result = self.ocr.ocr(str(image_path), cls=True)
+        result = self.ocr.ocr(str(image_path))
 
-        if not result or result[0] is None:
+        if not result or len(result) == 0:
             return ""
 
-        # Extract text from result structure
-        lines = []
-        for line in result[0]:
-            if line:
-                text = line[1][0]  # Text content
-                confidence = line[1][1]  # Confidence score
-                if confidence > 0.5:  # Filter low confidence
-                    lines.append(text)
+        # 新版 PaddleOCR 返回结构: [{'rec_texts': [...], 'rec_scores': [...]}]
+        texts = []
+        for page in result:
+            if 'rec_texts' in page:
+                texts.extend(page['rec_texts'])
 
-        return ' '.join(lines)
+        return ' '.join(texts)
 
     def extract_text_with_boxes(self, image_path: Path) -> list:
         """
@@ -58,7 +52,7 @@ class OCREngine:
         Returns:
             List of dicts: [{'text': '...', 'box': [...], 'confidence': 0.95}, ...]
         """
-        result = self.ocr.ocr(str(image_path), cls=True)
+        result = self.ocr.ocr(str(image_path))
 
         if not result or result[0] is None:
             return []

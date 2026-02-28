@@ -2,6 +2,9 @@
 
 from pathlib import Path
 from typing import Iterator
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class ImageScanner:
@@ -39,8 +42,12 @@ class ImageScanner:
             pattern = "*"
 
         for path in directory.glob(pattern):
-            if path.is_file() and path.suffix.lower() in self.supported_formats:
-                images.append(path)
+            try:
+                if path.is_file() and path.suffix.lower() in self.supported_formats:
+                    images.append(path)
+            except OSError:
+                # Skip files that can't be accessed (e.g., SMB special characters)
+                continue
 
         return sorted(images)
 
