@@ -89,6 +89,12 @@ docker-compose up -d
 # 查看日志
 docker-compose logs -f
 
+# 停止并删除容器/网络（保留 OCR 模型缓存 volume）
+docker-compose down
+
+# 停止并删除容器/网络/volume（会删除 OCR 模型缓存，后续会重新下载）
+docker-compose down -v
+
 # 定时扫描（添加 cron 任务）
 crontab -e
 # 添加: 0 */6 * * * cd /opt/seed-scanner && docker-compose up
