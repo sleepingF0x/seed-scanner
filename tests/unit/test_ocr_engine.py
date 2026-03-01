@@ -80,3 +80,29 @@ def test_extract_text_with_boxes_legacy_response():
     assert len(result) == 2
     assert result[0]["text"] == "abandon ability"
     assert result[0]["confidence"] == 0.95
+
+
+def test_extract_text_retries_with_safe_runtime_on_paddle_onednn_error():
+    """Retries once with safe runtime flags when Paddle oneDNN/PIR throws."""
+    engine = OCREngine(use_gpu=False)
+
+    failing_ocr = Mock()
+    failing_ocr.ocr = Mock(side_effect=Exception(
+        "(Unimplemented) ConvertPirAttribute2RuntimeAttribute not support "
+        "[pir::ArrayAttribute<pir::DoubleAttribute>]"
+    ))
+
+    working_ocr = Mock()
+    working_ocr.ocr = Mock(return_value=[
+        {"rec_texts": ["abandon ability"], "rec_scores": [0.95]}
+    ])
+
+    engine._ocr = failing_ocr
+
+    with patch.object(engine, "_build_ocr_engine", return_value=working_ocr) as mock_build:
+        result = engine.extract_text(Path("fake.png"))
+
+    assert result == "abandon ability"
+    mock_build.assert_called_once_with(safe_mode=True)
+    assert failing_ocr.ocr.call_count == 1
+    assert working_ocr.ocr.call_count == 1
