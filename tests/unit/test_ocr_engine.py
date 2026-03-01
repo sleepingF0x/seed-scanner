@@ -106,3 +106,14 @@ def test_extract_text_retries_with_safe_runtime_on_paddle_onednn_error():
     mock_build.assert_called_once_with(safe_mode=True)
     assert failing_ocr.ocr.call_count == 1
     assert working_ocr.ocr.call_count == 1
+
+
+def test_build_ocr_kwargs_only_uses_supported_constructor_args():
+    engine = OCREngine(use_gpu=False)
+
+    class MinimalPaddleOCR:
+        def __init__(self, lang=None):
+            self.lang = lang
+
+    kwargs = engine._build_ocr_kwargs(MinimalPaddleOCR, safe_mode=True)
+    assert kwargs == {"lang": None}

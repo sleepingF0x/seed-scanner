@@ -2,6 +2,7 @@
 
 import logging
 import os
+import inspect
 from pathlib import Path
 from time import perf_counter
 
@@ -20,16 +21,31 @@ class OCREngine:
     def _build_ocr_engine(self, safe_mode: bool = False):
         """Build a PaddleOCR instance with optional compatibility-safe settings."""
         from paddleocr import PaddleOCR
+        kwargs = self._build_ocr_kwargs(PaddleOCR, safe_mode=safe_mode)
+        return PaddleOCR(**kwargs)
 
+    def _build_ocr_kwargs(self, constructor, safe_mode: bool) -> dict:
         kwargs = {
             "lang": self.lang if self.lang != 'en' else None,
+        }
+
+        optional_kwargs = {
             "use_gpu": self.use_gpu,
         }
         if safe_mode:
             # Workaround for Paddle runtime incompatibilities in some CPU builds.
-            kwargs["enable_mkldnn"] = False
+            optional_kwargs["enable_mkldnn"] = False
 
-        return PaddleOCR(**kwargs)
+        try:
+            supported = set(inspect.signature(constructor).parameters)
+        except (TypeError, ValueError):
+            supported = set()
+
+        for key, value in optional_kwargs.items():
+            if key in supported:
+                kwargs[key] = value
+
+        return kwargs
 
     @staticmethod
     def _is_paddle_onednn_runtime_error(exc: Exception) -> bool:
