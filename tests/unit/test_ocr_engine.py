@@ -1,5 +1,6 @@
 """Tests for OCR engine module."""
 
+import os
 import pytest
 from pathlib import Path
 from unittest.mock import Mock, patch
@@ -117,3 +118,14 @@ def test_build_ocr_kwargs_only_uses_supported_constructor_args():
 
     kwargs = engine._build_ocr_kwargs(MinimalPaddleOCR, safe_mode=True)
     assert kwargs == {"lang": None}
+
+
+def test_cpu_mode_enables_safe_runtime_flags(monkeypatch):
+    monkeypatch.delenv("FLAGS_use_mkldnn", raising=False)
+    monkeypatch.delenv("FLAGS_enable_pir_api", raising=False)
+
+    engine = OCREngine(use_gpu=False)
+
+    assert engine._safe_mode_enabled is True
+    assert os.environ["FLAGS_use_mkldnn"] == "0"
+    assert os.environ["FLAGS_enable_pir_api"] == "0"

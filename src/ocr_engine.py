@@ -16,7 +16,17 @@ class OCREngine:
         self.use_gpu = use_gpu
         self.lang = lang
         self._ocr = None
-        self._safe_mode_enabled = False
+        self._safe_mode_enabled = not use_gpu
+        self._safe_retry_attempted = False
+        if self._safe_mode_enabled:
+            self._enable_safe_runtime_flags()
+
+    @staticmethod
+    def _enable_safe_runtime_flags():
+        # Must be set before Paddle runtime initializes to reliably avoid
+        # oneDNN/PIR incompatibility paths in some CPU environments.
+        os.environ.setdefault("FLAGS_use_mkldnn", "0")
+        os.environ.setdefault("FLAGS_enable_pir_api", "0")
 
     def _build_ocr_engine(self, safe_mode: bool = False):
         """Build a PaddleOCR instance with optional compatibility-safe settings."""
@@ -71,8 +81,9 @@ class OCREngine:
             "Retrying OCR with safe runtime settings for: %s",
             image_path.name,
         )
+        self._safe_retry_attempted = True
         self._safe_mode_enabled = True
-        os.environ["FLAGS_use_mkldnn"] = "0"
+        self._enable_safe_runtime_flags()
         self._ocr = self._build_ocr_engine(safe_mode=True)
         result = self._ocr.ocr(str(image_path))
         return self._extract_text_from_result(result)
@@ -122,7 +133,7 @@ class OCREngine:
         try:
             result = self.ocr.ocr(str(image_path))
         except Exception as e:
-            if self._is_paddle_onednn_runtime_error(e) and not self._safe_mode_enabled:
+            if self._is_paddle_onednn_runtime_error(e) and not self._safe_retry_attempted:
                 result = self._retry_with_safe_runtime(image_path)
                 elapsed = perf_counter() - start
                 if result:
