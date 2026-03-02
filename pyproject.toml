@@ -8,8 +8,8 @@ version = "0.1.0"
 description = "Scan images for cryptocurrency seed phrases"
 requires-python = ">=3.10"
 dependencies = [
-    "paddlepaddle",
-    "paddleocr",
+    "paddlepaddle==3.2.0",
+    "paddleocr==3.3.3",
     "pillow",
     "imagehash",
     "pyyaml",

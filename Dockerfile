@@ -23,8 +23,8 @@ COPY data/ ./data/
 
 # 安装 Python 依赖（直接用 pip，不依赖 uv）
 RUN pip install --no-cache-dir \
-    paddlepaddle \
-    paddleocr \
+    paddlepaddle==3.2.0 \
+    paddleocr==3.3.3 \
     pillow \
     imagehash \
     pyyaml
