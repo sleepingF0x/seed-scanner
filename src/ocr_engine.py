@@ -17,7 +17,6 @@ class OCREngine:
         self.lang = lang
         self._ocr = None
         self._safe_mode_enabled = not use_gpu
-        self._safe_retry_attempted = False
         if self._safe_mode_enabled:
             self._enable_safe_runtime_flags()
 
@@ -81,7 +80,6 @@ class OCREngine:
             "Retrying OCR with safe runtime settings for: %s",
             image_path.name,
         )
-        self._safe_retry_attempted = True
         self._safe_mode_enabled = True
         self._enable_safe_runtime_flags()
         self._ocr = self._build_ocr_engine(safe_mode=True)
@@ -129,11 +127,13 @@ class OCREngine:
         """
         logger.debug("Starting OCR extraction: %s", image_path)
         start = perf_counter()
+        safe_retry_attempted = False
 
         try:
             result = self.ocr.ocr(str(image_path))
         except Exception as e:
-            if self._is_paddle_onednn_runtime_error(e) and not self._safe_retry_attempted:
+            if self._is_paddle_onednn_runtime_error(e) and not safe_retry_attempted:
+                safe_retry_attempted = True
                 result = self._retry_with_safe_runtime(image_path)
                 elapsed = perf_counter() - start
                 if result:

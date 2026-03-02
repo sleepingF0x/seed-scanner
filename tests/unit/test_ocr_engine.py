@@ -129,3 +129,34 @@ def test_cpu_mode_enables_safe_runtime_flags(monkeypatch):
     assert engine._safe_mode_enabled is True
     assert os.environ["FLAGS_use_mkldnn"] == "0"
     assert os.environ["FLAGS_enable_pir_api"] == "0"
+
+
+def test_extract_text_allows_safe_retry_for_each_new_image():
+    engine = OCREngine(use_gpu=False)
+    error = Exception(
+        "(Unimplemented) ConvertPirAttribute2RuntimeAttribute not support "
+        "[pir::ArrayAttribute<pir::DoubleAttribute>]"
+    )
+
+    # First image: fail then recover via safe rebuild.
+    first_failing_ocr = Mock()
+    first_failing_ocr.ocr = Mock(side_effect=error)
+    first_working_ocr = Mock()
+    first_working_ocr.ocr = Mock(return_value=[{"rec_texts": ["first"]}])
+    engine._ocr = first_failing_ocr
+
+    with patch.object(engine, "_build_ocr_engine", return_value=first_working_ocr):
+        first_result = engine.extract_text(Path("first.png"))
+
+    # Second image: should still be allowed to retry once.
+    second_failing_ocr = Mock()
+    second_failing_ocr.ocr = Mock(side_effect=error)
+    second_working_ocr = Mock()
+    second_working_ocr.ocr = Mock(return_value=[{"rec_texts": ["second"]}])
+    engine._ocr = second_failing_ocr
+
+    with patch.object(engine, "_build_ocr_engine", return_value=second_working_ocr):
+        second_result = engine.extract_text(Path("second.png"))
+
+    assert first_result == "first"
+    assert second_result == "second"
